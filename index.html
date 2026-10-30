@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý chi tiêu</title>
+  <style>
+    *{box-sizing:border-box} body{font-family:Arial,sans-serif;margin:0;background:#f3f6fb;color:#202938}
+    .wrap{max-width:760px;margin:32px auto;padding:20px}
+    h1{margin:0 0 8px;color:#2457a6}.sub{color:#687386;margin-bottom:22px}
+    .card{background:white;border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 4px 18px #182b4b0d}
+    form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    input,select,button{padding:12px;border:1px solid #d6deea;border-radius:9px;font-size:15px}
+    button{background:#2457a6;color:white;border:0;cursor:pointer;font-weight:bold}
+    button:hover{background:#194583}.full{grid-column:1/-1}
+    .stats{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .stat strong{display:block;font-size:22px;margin-top:6px;color:#2457a6}
+    .chart-area{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+    .pie{width:190px;height:190px;border-radius:50%;background:conic-gradient(#4f83cc 0 100%);flex:none}
+    .legend{line-height:2}.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px}
+    ul{padding:0;list-style:none;margin:0}li{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #edf0f5}
+    .muted{color:#7b8493;font-size:13px}.del{background:#e9eef7;color:#345; padding:7px 10px}
+    @media(max-width:520px){form{grid-template-columns:1fr}.full{grid-column:auto}.wrap{padding:14px}.chart-area{justify-content:center}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Quản lý chi tiêu</h1>
+  <div class="sub">Theo dõi thu chi và xem biểu đồ theo danh mục.</div>
+  <div class="card stats">
+    <div class="stat">Tổng thu<strong id="income">0 ₫</strong></div>
+    <div class="stat">Tổng chi<strong id="expense">0 ₫</strong></div>
+    <div class="stat">Số dư<strong id="balance">0 ₫</strong></div>
+  </div>
+  <div class="card">
+    <h3>Thêm giao dịch</h3>
+    <form id="form">
+      <input id="name" placeholder="Tên giao dịch" required>
+      <input id="amount" type="number" min="1" placeholder="Số tiền (VNĐ)" required>
+      <select id="type"><option value="expense">Chi tiêu</option><option value="income">Thu nhập</option></select>
+      <select id="category">
+        <option>Ăn uống</option><option>Di chuyển</option><option>Mua sắm</option><option>Học tập</option><option>Giải trí</option><option>Khác</option>
+      </select>
+      <button class="full" type="submit">Thêm giao dịch</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Biểu đồ chi tiêu</h3>
+    <div class="chart-area"><div class="pie" id="pie"></div><div class="legend" id="legend">Chưa có dữ liệu</div></div>
+  </div>
+  <div class="card">
+    <h3>Lịch sử giao dịch</h3>
+    <ul id="list"><li class="muted">Chưa có giao dịch nào.</li></ul>
+  </div>
+</div>
+<script>
+const colors=['#4f83cc','#f39c5a','#58a88a','#9b7bd3','#e16b83','#9aa5b5'];
+let items=[];
+const money=n=>new Intl.NumberFormat('vi-VN').format(n)+' ₫';
+function render(){
+  const inc=items.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0);
+  const exp=items.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+  document.getElementById('income').textContent=money(inc);
+  document.getElementById('expense').textContent=money(exp);
+  document.getElementById('balance').textContent=money(inc-exp);
+  const totals={}; items.filter(x=>x.type==='expense').forEach(x=>totals[x.category]=(totals[x.category]||0)+x.amount);
+  const entries=Object.entries(totals), sum=entries.reduce((s,x)=>s+x[1],0);
+  let start=0, stops=[];
+  entries.forEach(([cat,val],i)=>{const end=start+(sum?val/sum*100:0);stops.push(`${colors[i%colors.length]} ${start}% ${end}%`);start=end;});
+  document.getElementById('pie').style.background=stops.length?`conic-gradient(${stops.join(',')})`:'#e7edf5';
+  document.getElementById('legend').innerHTML=entries.length?entries.map(([cat,val],i)=>`<div><span class="dot" style="background:${colors[i%colors.length]}"></span>${cat}: ${money(val)}</div>`).join(''):'Chưa có dữ liệu';
+  const list=document.getElementById('list');
+  list.innerHTML=items.length?'':'<li class="muted">Chưa có giao dịch nào.</li>';
+  items.slice().reverse().forEach((x,i)=>{
+    const li=document.createElement('li');
+    const left=document.createElement('span'); left.textContent=x.name+' · '+x.category;
+    const right=document.createElement('span'); right.textContent=(x.type==='income'?'+':'−')+money(x.amount);
+    right.style.color=x.type==='income'?'#21845b':'#c34c54';
+    li.append(left,right); list.appendChild(li);
+  });
+}
+document.getElementById('form').addEventListener('submit',e=>{
+  e.preventDefault();
+  items.push({name:document.getElementById('name').value,amount:Number(document.getElementById('amount').value),type:document.getElementById('type').value,category:document.getElementById('category').value});
+  e.target.reset(); render();
+});
+render();
+</script>
+</body>
+</html>
